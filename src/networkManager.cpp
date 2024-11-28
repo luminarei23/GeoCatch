@@ -88,15 +88,13 @@ void NetworkManager::resolveLocalhost() {
 }
 
 void NetworkManager::checkConnectionStatus() {
-    QNetworkRequest request(QUrl("https://www.google.com")); // Use a lightweight URL for testing
+    QNetworkRequest request(QUrl("https://www.google.com"));
     QNetworkReply *reply = networkManager->head(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         bool onlineStatus  = (reply->error() == QNetworkReply::NoError);
-
-        // Use the setter to update and emit changes
         if (onlineStatus != isOnline()) {
-            setOnline(onlineStatus); // Update the online status
+            setOnline(onlineStatus);
         }
         reply->deleteLater();
     });
@@ -109,15 +107,13 @@ bool NetworkManager::isOnline() const {
 void NetworkManager::setOnline(bool onlineStatus) {
     if (online != onlineStatus) {
         online = onlineStatus;
-        emit connectionStatusChanged(online); // Emit the signal for the change
+        emit connectionStatusChanged(online);
         emit debugMessage("Connection status updated: " + QString(online ? "Online" : "Offline"));
     }
 }
 
 void NetworkManager::handleConnectionStatus(QNetworkReply *reply) {
     bool onlineStatus = (reply->error() == QNetworkReply::NoError);
-
-    // Use the setter to update the connection status
     setOnline(onlineStatus);
 
     reply->deleteLater();

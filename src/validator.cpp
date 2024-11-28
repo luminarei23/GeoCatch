@@ -65,7 +65,7 @@ void Validator::validateInput(const QString &input) {
 
     // Resolve "localhost"
     if (trimmedInput.compare("localhost", Qt::CaseInsensitive) == 0) {
-        emit debugMessage("Step 1: Resolving 'localhost' to public IP...");
+        emit debugMessage(" Resolving 'localhost' to public IP...");
         connect(networkManager, &NetworkManager::localhostResolved, this, [this](const QString &publicIP) {
             emit debugMessage("Resolved localhost to public IP: " + publicIP);
             networkManager->makeApiCall(publicIP);
@@ -77,7 +77,7 @@ void Validator::validateInput(const QString &input) {
 
     // Validate IP address
     if (isValidIpAddress(trimmedInput)) {
-        emit debugMessage("Step 2: Detected as a valid IP address.");
+        emit debugMessage(" Detected as a valid IP address.");
         if (networkManager->isOnline()) {
             emit debugMessage("Online mode: Calling NetworkManager::makeApiCall.");
             networkManager->makeApiCall(trimmedInput);
@@ -92,7 +92,7 @@ void Validator::validateInput(const QString &input) {
     QString normalizedUrl = normalizeUrl(trimmedInput);
     if (!normalizedUrl.isEmpty() && isValidUrl(normalizedUrl)) {
         QUrl url(normalizedUrl);
-        emit debugMessage("Step 3: Detected as a valid URL. Host: " + url.host());
+        emit debugMessage("Detected as a valid URL. Host: " + url.host());
         if (networkManager->isOnline()) {
             emit debugMessage("Online mode: Resolving URL to IP and making API call.");
             QHostInfo::lookupHost(url.host(), this, [this, normalizedUrl](const QHostInfo &host) {
@@ -100,17 +100,17 @@ void Validator::validateInput(const QString &input) {
                     for (const QHostAddress &address : host.addresses()) {
                         if (address.protocol() == QAbstractSocket::IPv4Protocol) {
                             QString ip = address.toString();
-                            emit debugMessage("Step 4: URL resolved to IP: " + ip);
+                            emit debugMessage(" URL resolved to IP: " + ip);
                             emit validationResult(true, "Valid URL. Resolved IP: " + ip, ip);
                             networkManager->makeApiCall(ip); // Use the resolved IP for the API call
                             QTimer::singleShot(1000, this, &Validator::requestFinished);
                             return;
                         }
                     }
-                    emit debugMessage("Step 4: No valid IPv4 address found for host.");
+                    emit debugMessage(" No valid IPv4 address found for host.");
                     emit validationResult(false, "No IPv4 address found for the host.", "");
                 } else {
-                    emit debugMessage("Step 4: Host resolution error: " + host.errorString());
+                    emit debugMessage(": Host resolution error: " + host.errorString());
                     emit validationResult(false, "Failed to resolve host: " + host.errorString(), "");
                 }
                 QTimer::singleShot(1000, this, &Validator::requestFinished);
@@ -122,7 +122,7 @@ void Validator::validateInput(const QString &input) {
     }
 
     // Invalid input
-    emit debugMessage("Step 4: Invalid input. Not an IP address or valid URL.");
+    emit debugMessage(" Invalid input. Not an IP address or valid URL.");
     emit validationResult(false, "Invalid input. Not an IP address or valid URL.", "");
     QTimer::singleShot(1000, this, &Validator::requestFinished);
 }

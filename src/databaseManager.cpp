@@ -155,7 +155,6 @@ bool DatabaseManager::saveUniqueAddress(const QString &address, const QVariantMa
         return false;
     }
 
-    // Insert new address
     return addAddress(address, data);
 }
 
