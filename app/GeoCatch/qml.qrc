@@ -1,8 +1,0 @@
-<!DOCTYPE RCC>
-<RCC version="1.0">
-    <qresource prefix="/">
-        <file>resources/offline.png</file>
-        <file>resources/online.png</file>
-        <file>resources/globe.png</file>
-    </qresource>
-</RCC>
