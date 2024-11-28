@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import Qt5Compat.GraphicalEffects
 import validator 1.0
+import networkmanager 1.0
 
 ApplicationWindow {
     id: appRoot
@@ -16,59 +17,101 @@ ApplicationWindow {
     title: qsTr("GeoCatch")
     color: "#f2f2f2"
 
-    // Create an instance of Validator
+    Component.onCompleted: {
+        console.log("networkManager:", networkManager);
+        if (networkManager) {
+            console.log("Connected to networkManager signals.");
+        } else {
+            console.error("NetworkManager is not properly initialized in QML.");
+        }
+    }
+    // Validator component for input validation and database interactions
     Validator {
         id: ipValidator
 
-        onDebugMessage: console.log("Validator Debug:", message) // Print debug messages
+        // Debugging messages from Validator
+        onDebugMessage: function(message) {
+            console.log("Validator Debug:", message);
+        }
 
+        // Input validation results
         onValidationResult: function(valid, message, ip) {
             if (!valid) {
-                messageDialog.title = "Error"
-                messageDialog.text = message
-                messageDialog.open()
+                messageDialog.title = "Error";
+                messageDialog.text = message;
+                messageDialog.open();
             } else {
-                console.log(message);  // Can show success message in the UI
+                console.log(message);
             }
         }
 
-        onApiResponseReceived: function(ip, hostname, city, region, country, loc, postal, timezone) {
-            // Update appObject properties with the API response data
-            appObject.ip = ip;
-            appObject.hostname = hostname;
-            appObject.city = city;
-            appObject.region = region;
-            appObject.country = country;
-            appObject.loc = loc;
-            appObject.postal = postal;
-            appObject.timezone = timezone;
+        // Debugging database-related errors
+        onDatabaseError: function(error) {
+            console.error("Database Error:", error);
+            messageDialog.title = "Database Error";
+            messageDialog.text = error;
+            messageDialog.open();
+        }
+    }
 
-            // Log the response to the console for debugging
-            console.log("API Response: ", ip, hostname, city, region, country, loc, postal, timezone);
+    Connections {
+        target: ipValidator
+
+        // Handle the API response forwarded from Validator
+        onApiResponseReceived: function(ip, hostname, city, region, country, loc, postal, timezone) {
+            appObject.ip = ip;
+            appObject.hostname = hostname || "Unknown";
+            appObject.city = city || "Unknown";
+            appObject.region = region || "Unknown";
+            appObject.country = country || "Unknown";
+            appObject.loc = loc || "Unknown";
+            appObject.postal = postal || "Unknown";
+            appObject.timezone = timezone || "Unknown";
+
+            console.log("API Response Received:", ip, hostname, city, region, country, loc, postal, timezone);
+        }
+    }
+
+    // NetworkManager component for handling network-related functionality
+    NetworkManager {
+        id: networkManager
+
+        onDebugMessage: console.log("NetworkManager Debug:", message)
+
+        onApiResponseReceived: function(ip, apiData) {
+            appObject.ip = ip;
+            appObject.hostname = apiData.hostname || "Unknown";
+            appObject.city = apiData.city || "Unknown";
+            appObject.region = apiData.region || "Unknown";
+            appObject.country = apiData.country || "Unknown";
+            appObject.loc = apiData.loc || "Unknown";
+            appObject.postal = apiData.postal || "Unknown";
+            appObject.timezone = apiData.timezone || "Unknown";
+
+            console.log("API Response: ", ip, apiData);
         }
 
-        onDatabaseError: function(error) {
-               console.error("Database Error:", error);
-               messageDialog.title = "Database Error";
-               messageDialog.text = error;
-               messageDialog.open();
-           }
-
+        // Connection status updates
         onConnectionStatusChanged: function(isOnline) {
             console.log("Connection status updated:", isOnline ? "Online" : "Offline");
 
-            // Update the connection icon
+            // Update connection icon and label
             connectionIcon.source = isOnline
                 ? "qrc:/resources/online.png"
                 : "qrc:/resources/offline.png";
 
-            // Update label text
             offlineMessage.text = isOnline
                 ? ""
                 : "Offline Mode: Searching database instead of the internet.";
 
-            // Update visibility of the label
             offlineMessage.visible = !isOnline;
+        }
+
+        // Localhost resolved to public IP
+        onLocalhostResolved: function(publicIP) {
+            console.log("Resolved Localhost IP:", publicIP);
+            // Trigger validation with the resolved IP
+            ipValidator.validateInput(publicIP);
         }
     }
 
@@ -77,10 +120,8 @@ ApplicationWindow {
         id: messageDialog
         title: "Validation Result"
         text: ""
-        // icon: MessageDialog.Information
-        // standardButton: MessageDialog.Ok
     }
-
+    // All entries
     QtObject {
         id: appObject
 
@@ -104,12 +145,7 @@ ApplicationWindow {
         property int button_small: 14
     }
 
-    function stringFixer(variable) {
-        return variable.replace(/['"]+/g, '\n');
-    }
-
     Pane {
-
         anchors.fill: parent
         background: appRoot.background
 
@@ -283,7 +319,7 @@ ApplicationWindow {
                         Text {
 
                             font.pixelSize: 14
-                            text: qsTr("Loc:")
+                            text: qsTr("Localization:")
                         }
                         Text {
 
@@ -370,7 +406,7 @@ ApplicationWindow {
                                         color: "#333"
                                         anchors.fill: parent
                                         anchors.margins: 4
-                                        focus: true  // Automatically focus when the user clicks the input box
+                                        focus: true
                                 }
 
                                 Item { Layout.fillWidth: true; }
@@ -380,7 +416,7 @@ ApplicationWindow {
                         }
                     }
                     Item{}
-
+                    // detecting the IP call
                     Button {
                         id: shortButton
                         implicitWidth: parent.width / 1.2
@@ -423,21 +459,20 @@ ApplicationWindow {
                                 NumberAnimation { duration: 70; }
                             }
                         }
-
                         onClicked: {
                             busyIndicator.running = true;  // Start the busy indicator
                             ipValidator.validateInput(ipInput.text);  // Call the C++ validation function
                             ipInput.text = "";
-                        }
-                        Connections {
-                            target: ipValidator
+                            }
+                            Connections {
+                                target: ipValidator
 
-                            onRequestFinished: {
-                                busyIndicator.running = false;  // Stop the busy indicator
+                                onRequestFinished: {
+                                    busyIndicator.running = false;  // Stop the busy indicator
+                                }
                             }
                         }
-                    }
-
+                    // displaying database call
                     Button {
                         id: viewDatabaseButton
                         implicitWidth: parent.width / 1.2
@@ -492,6 +527,7 @@ ApplicationWindow {
                             savedAddressesDialog.open();
                         }
                     }
+                // clearing database call
                 Button {
                     id: clearDatabase
                     implicitWidth: parent.width / 1.2
@@ -548,7 +584,7 @@ ApplicationWindow {
                 }
             }
         }
-
+        // busy logo animation
         BusyIndicator {
             id: busyIndicator
             width: 48
@@ -608,7 +644,7 @@ ApplicationWindow {
                 }
             }
         }
-
+        // view of the entries saved in database
         Dialog {
             id: savedAddressesDialog
             width: parent.width * 0.8
@@ -662,7 +698,7 @@ ApplicationWindow {
                 }
             }
         }
-
+        // label displaying information about state of the app
         Label {
             id: offlineMessage
             visible: false  // Default to hidden
@@ -678,9 +714,10 @@ ApplicationWindow {
         }
     }
 
+    // connection indication icon
     Image {
         id: connectionIcon
-        source: "qrc:/resources/online.png" // Default to offline
+        source: "qrc:/resources/online.png"
         width: 24
         height: 24
         anchors.top: parent.top
@@ -690,6 +727,4 @@ ApplicationWindow {
             text: connectionIcon.source === "qrc:/resources/online.png" ? "Online" : "Offline"
         }
     }
-
-
 }

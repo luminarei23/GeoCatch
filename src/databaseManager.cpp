@@ -1,4 +1,5 @@
 #include "databaseManager.h"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QSqlQuery>
@@ -107,10 +108,10 @@ bool DatabaseManager::addressExists(const QString &address) {
     }
 
     if (query.next()) {
-        return query.value(0).toInt() > 0; // Return true if count > 0
+        return query.value(0).toInt() > 0;
     }
 
-    return false; // Default to false if no result
+    return false;
 }
 
 bool DatabaseManager::addAddress(const QString &address, const QVariantMap &data) {
@@ -241,32 +242,22 @@ bool DatabaseManager::dropDatabase() {
 
 QVariantMap DatabaseManager::getSpecificAddressData(const QString &address) {
     QSqlDatabase db = getDatabase();
-    QVariantMap data;
-
     if (!db.isOpen()) {
-        qWarning() << "Database is not open!";
-        return data;
-    }
-
-    if (!tableExists("api_responses")) {
-        qWarning() << "Table 'api_responses' does not exist!";
-        return data;
+        qDebug() << "Database is not open!";
+        return {};
     }
 
     QSqlQuery query(db);
-    if (!query.prepare("SELECT * FROM api_responses WHERE address = :address")) {
-        qWarning() << "Failed to prepare query for specific address:" << query.lastError().text();
-        return data;
-    }
-
+    query.prepare("SELECT * FROM api_responses WHERE address = :address");
     query.bindValue(":address", address);
 
     if (!query.exec()) {
-        qWarning() << "Failed to fetch specific address data:" << query.lastError().text();
-        return data;
+        qDebug() << "Database query failed:" << query.lastError().text();
+        return {};
     }
 
     if (query.next()) {
+        QVariantMap data;
         data["address"] = query.value("address").toString();
         data["hostname"] = query.value("hostname").toString();
         data["city"] = query.value("city").toString();
@@ -275,7 +266,10 @@ QVariantMap DatabaseManager::getSpecificAddressData(const QString &address) {
         data["loc"] = query.value("loc").toString();
         data["postal"] = query.value("postal").toString();
         data["timezone"] = query.value("timezone").toString();
+        qDebug() << "Retrieved data from database:" << data;
+        return data;
     }
 
-    return data;
+    qDebug() << "No data found for address:" << address;
+    return {};
 }
