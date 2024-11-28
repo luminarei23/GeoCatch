@@ -6,7 +6,6 @@ import QtQuick.Dialogs
 import Qt5Compat.GraphicalEffects
 import validator 1.0
 
-
 ApplicationWindow {
     id: appRoot
     width: 600
@@ -47,6 +46,30 @@ ApplicationWindow {
             // Log the response to the console for debugging
             console.log("API Response: ", ip, hostname, city, region, country, loc, postal, timezone);
         }
+
+        onDatabaseError: function(error) {
+               console.error("Database Error:", error);
+               messageDialog.title = "Database Error";
+               messageDialog.text = error;
+               messageDialog.open();
+           }
+
+        onConnectionStatusChanged: function(isOnline) {
+            console.log("Connection status updated:", isOnline ? "Online" : "Offline");
+
+            // Update the connection icon
+            connectionIcon.source = isOnline
+                ? "qrc:/resources/online.png"
+                : "qrc:/resources/offline.png";
+
+            // Update label text
+            offlineMessage.text = isOnline
+                ? ""
+                : "Offline Mode: Searching database instead of the internet.";
+
+            // Update visibility of the label
+            offlineMessage.visible = !isOnline;
+        }
     }
 
     // Define MessageDialog to show the result
@@ -86,6 +109,7 @@ ApplicationWindow {
     }
 
     Pane {
+
         anchors.fill: parent
         background: appRoot.background
 
@@ -322,7 +346,7 @@ ApplicationWindow {
 
                     Rectangle {
                         width: parent.width - 100
-                        height: 45
+                        height: 38
                         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                         color: "#f1f1f1"
                         radius: 10
@@ -340,8 +364,8 @@ ApplicationWindow {
                                 // Input box for entering IP address
                                 TextInput {
                                     id: ipInput
-                                        width: parent.width - 100
-                                        height: 45
+                                        width: parent.width - 50
+                                        height: 50
                                         font.pixelSize: 16
                                         color: "#333"
                                         anchors.fill: parent
@@ -403,6 +427,7 @@ ApplicationWindow {
                         onClicked: {
                             busyIndicator.running = true;  // Start the busy indicator
                             ipValidator.validateInput(ipInput.text);  // Call the C++ validation function
+                            ipInput.text = "";
                         }
                         Connections {
                             target: ipValidator
@@ -459,19 +484,12 @@ ApplicationWindow {
                         onClicked: {
                             console.log("View Database button clicked");
 
-                            let inputText = ipInput.text.trim(); // Get the text input
-                            if (inputText === "") {
-                                console.warn("Input is empty. Please enter a valid IP or URL.");
-                                return;
+                            savedAddressesModel.clear();
+                            let addresses = ipValidator.retrieveData();
+                            for (let address of addresses) {
+                                savedAddressesModel.append({ address: address });
                             }
-
-                            let result = ipValidator.retrieveData(inputText);
-
-                            if (Object.keys(result).length === 0) {
-                                console.log("No data found for:", inputText);
-                            } else {
-                                console.log("Data retrieved for", inputText, ":", JSON.stringify(result, null, 2));
-                            }
+                            savedAddressesDialog.open();
                         }
                     }
                 Button {
@@ -591,6 +609,87 @@ ApplicationWindow {
             }
         }
 
+        Dialog {
+            id: savedAddressesDialog
+            width: parent.width * 0.8
+            height: parent.height * 0.6
+            modal: true
+            title: "Saved Data"
 
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 10
+
+                ListView {
+                    id: savedAddressesListView
+                    model: savedAddressesModel
+                    clip: true
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: 40
+                        color: index % 2 === 0 ? "#f2f2f2" : "#ffffff"
+                        border.color: "#dfdfdf"
+                        radius: 5
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 10
+                            Text {
+                                text: model.address
+                                font.pixelSize: 14
+                                Layout.fillWidth: true
+                            }
+                            Button {
+                                text: "Copy"
+                                Layout.alignment: Qt.AlignRight
+                                onClicked: {
+                                    Qt.callLater(() => {
+                                        ipValidator.copyToClipboard(model.address);
+                                        console.log("Address copied:", model.address);
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    text: "Close"
+                    Layout.alignment: Qt.AlignHCenter
+                    onClicked: savedAddressesDialog.close();
+                }
+            }
+        }
+
+        Label {
+            id: offlineMessage
+            visible: false  // Default to hidden
+            text: ""        // Default empty text
+            color: "red"
+            anchors.top: connectionIcon.bottom
+            anchors.left: parent.left
+            anchors.margins: 135
+        }
+
+        ListModel {
+            id: savedAddressesModel
+        }
     }
+
+    Image {
+        id: connectionIcon
+        source: "qrc:/resources/online.png" // Default to offline
+        width: 24
+        height: 24
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.margins: 10
+        ToolTip {
+            text: connectionIcon.source === "qrc:/resources/online.png" ? "Online" : "Offline"
+        }
+    }
+
+
 }

@@ -1,18 +1,15 @@
 #include "validator.h"
 #include "databasemanager.h"
 
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QHostInfo>
-#include <QNetworkInterface>
-#include <QDebug>
-#include <QProcess>
-#include <QTimer>
-
 Validator::Validator(QObject *parent) : QObject(parent) {
     networkManager = new QNetworkAccessManager(this);
+    if (!DatabaseManager::instance().initializeDatabase()) {
+        emit databaseError("Failed to initialize the database. Please check your setup.");
+    }
+
+    connectionTimer = new QTimer(this);
+    connect(connectionTimer, &QTimer::timeout, this, &Validator::checkConnectionStatus);
+    connectionTimer->start(3000); // Check every 10 seconds
 }
 
 // Check if the input is a valid IPv4 address
@@ -75,8 +72,29 @@ void Validator::validateInput(const QString &input) {
     // Step 2: Check if it's a valid IP address
     if (isValidIpAddress(trimmedInput)) {
         emit debugMessage("Step 2: Detected as a valid IP address.");
-        emit validationResult(true, "Valid IP address.", trimmedInput);
-        makeApiCall(trimmedInput); // Directly make the API call for the IP address
+
+        if (isOnline) {
+            emit debugMessage("Online mode: Making API call for IP address.");
+            emit validationResult(true, "Valid IP address.", trimmedInput);
+            makeApiCall(trimmedInput); // Directly make the API call for the IP address
+        } else {
+            emit debugMessage("Offline mode: Searching database for IP address.");
+            QVariantMap data = DatabaseManager::instance().getSpecificAddressData(trimmedInput);
+            if (data.isEmpty()) {
+                emit debugMessage("No data found in database for: " + trimmedInput);
+                emit validationResult(false, "No data found in the database.", trimmedInput);
+            } else {
+                emit debugMessage("Data retrieved from database for: " + trimmedInput);
+                emit apiResponseReceived(data["address"].toString(),
+                                         data["hostname"].toString(),
+                                         data["city"].toString(),
+                                         data["region"].toString(),
+                                         data["country"].toString(),
+                                         data["loc"].toString(),
+                                         data["postal"].toString(),
+                                         data["timezone"].toString());
+            }
+        }
         QTimer::singleShot(1000, this, &Validator::requestFinished);
         return;
     }
@@ -87,28 +105,47 @@ void Validator::validateInput(const QString &input) {
         QUrl url(normalizedUrl);
         emit debugMessage("Step 3: Detected as a valid URL. Host: " + url.host());
 
-        // Resolve the host to an IP address
-        QHostInfo::lookupHost(url.host(), this, [this, normalizedUrl](const QHostInfo &host) {
-            if (host.error() == QHostInfo::NoError) {
-                for (const QHostAddress &address : host.addresses()) {
-                    if (address.protocol() == QAbstractSocket::IPv4Protocol) {
-                        QString ip = address.toString();
-                        emit debugMessage("Step 4: URL resolved to IP: " + ip);
-                        emit validationResult(true, "Valid URL. Resolved IP: " + ip, ip);
-                        makeApiCall(ip); // Use the resolved IP for the API call
-                        QTimer::singleShot(1000, this, &Validator::requestFinished);
-                        return;
+        if (isOnline) {
+            emit debugMessage("Online mode: Resolving URL to IP and making API call.");
+            QHostInfo::lookupHost(url.host(), this, [this, normalizedUrl](const QHostInfo &host) {
+                if (host.error() == QHostInfo::NoError) {
+                    for (const QHostAddress &address : host.addresses()) {
+                        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+                            QString ip = address.toString();
+                            emit debugMessage("Step 4: URL resolved to IP: " + ip);
+                            emit validationResult(true, "Valid URL. Resolved IP: " + ip, ip);
+                            makeApiCall(ip); // Use the resolved IP for the API call
+                            QTimer::singleShot(1000, this, &Validator::requestFinished);
+                            return;
+                        }
                     }
+                    emit debugMessage("Step 4: No valid IPv4 address found for host.");
+                    emit validationResult(false, "No IPv4 address found for the host.", "");
+                } else {
+                    emit debugMessage("Step 4: Host resolution error: " + host.errorString());
+                    emit validationResult(false, "Failed to resolve host: " + host.errorString(), "");
                 }
-                emit debugMessage("Step 4: No valid IPv4 address found for host.");
-                emit validationResult(false, "No IPv4 address found for the host.", "");
                 QTimer::singleShot(1000, this, &Validator::requestFinished);
+            });
+        } else {
+            emit debugMessage("Offline mode: Searching database for URL.");
+            QVariantMap data = DatabaseManager::instance().getSpecificAddressData(trimmedInput);
+            if (data.isEmpty()) {
+                emit debugMessage("No data found in database for URL: " + url.host());
+                emit validationResult(false, "No data found in the database.", url.host());
             } else {
-                emit debugMessage("Step 4: Host resolution error: " + host.errorString());
-                emit validationResult(false, "Failed to resolve host: " + host.errorString(), "");
-                QTimer::singleShot(1000, this, &Validator::requestFinished);
+                emit debugMessage("Data retrieved from database for URL: " + url.host());
+                emit apiResponseReceived(data["address"].toString(),
+                                         data["hostname"].toString(),
+                                         data["city"].toString(),
+                                         data["region"].toString(),
+                                         data["country"].toString(),
+                                         data["loc"].toString(),
+                                         data["postal"].toString(),
+                                         data["timezone"].toString());
             }
-        });
+            QTimer::singleShot(1000, this, &Validator::requestFinished);
+        }
         return;
     }
 
@@ -117,6 +154,7 @@ void Validator::validateInput(const QString &input) {
     emit validationResult(false, "Invalid input. Not an IP address or valid URL.", "");
     QTimer::singleShot(1000, this, &Validator::requestFinished);
 }
+
 
 
 
@@ -199,10 +237,34 @@ void Validator::handleLocalhost() {
     });
 }
 
-QVariantMap Validator::retrieveData(const QString &address) {
-    return DatabaseManager::instance().getAddressData(address);
+QList<QString> Validator::retrieveData() {
+    return DatabaseManager::instance().getAddressData();
 }
 
 bool Validator::clearDatabase() {
     return DatabaseManager::instance().dropDatabase();
 }
+
+void Validator::copyToClipboard(const QString &text) {
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setText(text, QClipboard::Clipboard);
+    emit debugMessage("Copied to clipboard: " + text);
+}
+
+void Validator::checkConnectionStatus() {
+    QNetworkRequest request(QUrl("https://www.google.com")); // Use a lightweight URL for testing
+    QNetworkReply *reply = networkManager->head(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        bool online = (reply->error() == QNetworkReply::NoError);
+
+        // Emit only if the connection status changes
+        if (online != isOnline) {
+            isOnline = online;
+            emit connectionStatusChanged(isOnline);
+            emit debugMessage("Connection status updated: " + QString(isOnline ? "Online" : "Offline"));
+        }
+        reply->deleteLater();
+    });
+}
+

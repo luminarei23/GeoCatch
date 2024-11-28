@@ -158,48 +158,31 @@ bool DatabaseManager::saveUniqueAddress(const QString &address, const QVariantMa
     return addAddress(address, data);
 }
 
-QVariantMap DatabaseManager::getAddressData(const QString &address) {
+QList<QString> DatabaseManager::getAddressData() {
     QSqlDatabase db = getDatabase();
-    QVariantMap result;
+    QList<QString> addresses;
 
     if (!db.isOpen()) {
         qWarning() << "Database is not open!";
-        return result;
+        return addresses;
     }
 
     if (!tableExists("api_responses")) {
         qWarning() << "Table 'api_responses' does not exist!";
-        return result;
+        return addresses;
     }
 
     QSqlQuery query(db);
-    if (!query.prepare("SELECT * FROM api_responses WHERE address = :address")) {
-        qWarning() << "Failed to prepare query for retrieving address data:" << query.lastError().text();
-        return result;
+    if (!query.exec("SELECT address FROM api_responses")) {
+        qWarning() << "Failed to fetch saved addresses:" << query.lastError().text();
+        return addresses;
     }
 
-    query.bindValue(":address", address);
-
-    if (!query.exec()) {
-        qWarning() << "Failed to execute query for retrieving address data:" << query.lastError().text();
-        return result;
+    while (query.next()) {
+        addresses.append(query.value("address").toString());
     }
 
-    if (query.next()) {
-        result["id"] = query.value("id").toInt();
-        result["address"] = query.value("address").toString();
-        result["hostname"] = query.value("hostname").toString();
-        result["city"] = query.value("city").toString();
-        result["region"] = query.value("region").toString();
-        result["country"] = query.value("country").toString();
-        result["loc"] = query.value("loc").toString();
-        result["postal"] = query.value("postal").toString();
-        result["timezone"] = query.value("timezone").toString();
-    } else {
-        qWarning() << "No data found for address:" << address;
-    }
-
-    return result;
+    return addresses;
 }
 
 bool DatabaseManager::tableExists(const QString &tableName) {
@@ -254,4 +237,45 @@ bool DatabaseManager::dropDatabase() {
 
     qDebug() << "Database cleared successfully.";
     return true;
+}
+
+QVariantMap DatabaseManager::getSpecificAddressData(const QString &address) {
+    QSqlDatabase db = getDatabase();
+    QVariantMap data;
+
+    if (!db.isOpen()) {
+        qWarning() << "Database is not open!";
+        return data;
+    }
+
+    if (!tableExists("api_responses")) {
+        qWarning() << "Table 'api_responses' does not exist!";
+        return data;
+    }
+
+    QSqlQuery query(db);
+    if (!query.prepare("SELECT * FROM api_responses WHERE address = :address")) {
+        qWarning() << "Failed to prepare query for specific address:" << query.lastError().text();
+        return data;
+    }
+
+    query.bindValue(":address", address);
+
+    if (!query.exec()) {
+        qWarning() << "Failed to fetch specific address data:" << query.lastError().text();
+        return data;
+    }
+
+    if (query.next()) {
+        data["address"] = query.value("address").toString();
+        data["hostname"] = query.value("hostname").toString();
+        data["city"] = query.value("city").toString();
+        data["region"] = query.value("region").toString();
+        data["country"] = query.value("country").toString();
+        data["loc"] = query.value("loc").toString();
+        data["postal"] = query.value("postal").toString();
+        data["timezone"] = query.value("timezone").toString();
+    }
+
+    return data;
 }
