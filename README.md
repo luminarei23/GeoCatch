@@ -53,7 +53,7 @@ Upon successful launch, the app will display a user-friendly UI. If connected to
 
 When offline, the app automatically switches to offline mode, allowing you to search saved IP addresses in the database:
 
-![Offline Mode](resources/offline_app.PNG)
+![Offline Mode](resources/offline_app.png)
 
 ---
 
