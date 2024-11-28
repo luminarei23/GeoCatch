@@ -1,4 +1,29 @@
+# Ignore build files
 build/
 *.obj
-*.rcc
-*.user
+*.o
+*.pdb
+*.tmp
+*.qrc~
+*.qmlc~
+*.cmake/
+CMakeFiles/
+CMakeCache.txt
+*.ninja
+*.ninja_deps
+*.ninja_log
+
+# Ignore development-specific files
+.qtc/
+.qtc_clangd/
+.qt_plugins/
+.rcc/
+appGeoCatch_autogen/
+
+# Ignore local database if not required
+*.db~
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+desktop.ini

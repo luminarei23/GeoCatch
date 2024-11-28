@@ -1,0 +1,336 @@
+[
+    {
+        "classes": [
+            {
+                "className": "DatabaseManager",
+                "object": true,
+                "qualifiedClassName": "DatabaseManager",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "databaseManager.h",
+        "outputRevision": 68
+    },
+    {
+        "classes": [
+            {
+                "className": "NetworkManager",
+                "methods": [
+                    {
+                        "access": "public",
+                        "name": "checkConnectionStatus",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "NetworkManager",
+                "signals": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "hostname",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "city",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "region",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "country",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "loc",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "postal",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "timezone",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "apiResponseReceived",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "debugMessage",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "isOnline",
+                                "type": "bool"
+                            }
+                        ],
+                        "name": "connectionStatusChanged",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "publicIP",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "localhostResolved",
+                        "returnType": "void"
+                    }
+                ],
+                "slots": [
+                    {
+                        "access": "private",
+                        "arguments": [
+                            {
+                                "name": "reply",
+                                "type": "QNetworkReply*"
+                            }
+                        ],
+                        "name": "handleConnectionStatus",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "networkManager.h",
+        "outputRevision": 68
+    },
+    {
+        "classes": [
+            {
+                "className": "Validator",
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "input",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "validateInput",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "retrieveData",
+                        "returnType": "QList<QString>"
+                    },
+                    {
+                        "access": "public",
+                        "name": "clearDatabase",
+                        "returnType": "bool"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "text",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "copyToClipboard",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "Validator",
+                "signals": [
+                    {
+                        "access": "public",
+                        "name": "requestLocalhost",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "requestIpAddress",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "url",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "requestUrl",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "debugMessage",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "success",
+                                "type": "bool"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "resolvedValue",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "validationResult",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "error",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "databaseError",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "name": "requestFinished",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "hostname",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "city",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "region",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "country",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "loc",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "postal",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "timezone",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "apiResponseReceived",
+                        "returnType": "void"
+                    }
+                ],
+                "slots": [
+                    {
+                        "access": "private",
+                        "arguments": [
+                            {
+                                "name": "ip",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "hostname",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "city",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "region",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "country",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "loc",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "postal",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "timezone",
+                                "type": "QString"
+                            }
+                        ],
+                        "name": "handleApiResponse",
+                        "returnType": "void"
+                    }
+                ],
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "validator.h",
+        "outputRevision": 68
+    }
+]

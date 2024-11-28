@@ -1,0 +1,5 @@
+module GeoCatch
+typeinfo appGeoCatch.qmltypes
+prefer :/qt/qml/GeoCatch/
+Main 1.0 Main.qml
+
