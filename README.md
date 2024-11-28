@@ -23,6 +23,7 @@ I had lots of fun exploring the Qt framework over the past couple of days, and I
     - [x] macOS `.app` build.
 - [x] **User-Friendly Interface**: Simple and intuitive design.
 - [x] **Easter Egg and Animations**: Includes fun elements and visual indicators for a better user experience.
+- [ ] **Test Coverage** I did not have more time to resolve issues with QTest so only prepared simple scheme presenting how i would approach this
 
 ---
 
@@ -57,10 +58,33 @@ When offline, the app automatically switches to offline mode, allowing you to se
 
 ---
 
-## ⚙️ Dependencies
+## ⚙️ Dependencies and Error Handling
 
 - **Qt 6.6**: For GUI and networking functionality.
 - **SQLite**: For local database storage.
 - **CMake**: For project configuration and builds.
+
+### Invalid Input (IP/URL)
+
+- The app validates input for both IP addresses and URLs before processing.
+- If the input is invalid:
+  - An error message is displayed to the user.
+  - No further processing occurs until the input is corrected.
+
+### Database Errors
+
+- **Scenario**: Missing or corrupted database file.
+  - If the database cannot be initialized, an error is logged, and a message is displayed.
+  - Database file is recreated if missing and the app is ready to work properly
+- **Scenario**: Failed database operations (e.g., saving or clearing data).
+  - The app logs the error and notifies the user with a clear error message.
+
+### API Unavailability
+
+- **Scenario**: API is unreachable (e.g., no internet connection).
+  - The app automatically switches to offline mode and uses the local database.
+  - A status indicator notifies the user of the offline mode.
+- **Scenario**: API returns invalid or incomplete data.
+  - The app logs the issue and skips saving incomplete data to the database.
 
 ---
